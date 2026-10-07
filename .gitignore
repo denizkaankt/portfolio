@@ -1,0 +1,14 @@
+# Gizli bilgiler asla repoya girmez
+.env
+.env.*
+*secret*
+*password*
+*sifre*
+wp.txt
+credentials.json
+*.sql
+*.tar.gz
+*.zip
+node_modules/
+.DS_Store
+Thumbs.db

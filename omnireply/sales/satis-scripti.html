@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniReply — Satış Scripti</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0; gap: 12px;
+  }
+  .logo { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: .08em; white-space: nowrap; }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .stage-pills { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+  .pill {
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    border-radius: 20px; border: 1px solid var(--border);
+    background: none; color: var(--text2); cursor: pointer;
+    transition: all .15s; white-space: nowrap;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .pill.bank-pill { border-color: var(--warn); color: var(--warn); }
+  .pill.bank-pill.active { background: var(--warn); border-color: var(--warn); color: #0a0e1a; }
+  .pill .cnt { display: inline-block; background: rgba(255,255,255,.2); border-radius: 10px; padding: 0 5px; margin-left: 3px; font-size: 10px; }
+
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  .left { flex: 1; overflow-y: auto; padding: 20px; border-right: 1px solid var(--border); }
+  .left.full { border-right: none; }
+
+  .stage-name {
+    font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .stage-name::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .speech-block { margin-bottom: 12px; }
+  .speech {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 14px 16px; background: var(--surface);
+  }
+  .speech p { font-size: 14px; line-height: 1.7; color: var(--text); }
+  .cue {
+    font-family: var(--mono); font-size: 11px; color: var(--text3);
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .nav-row { display: flex; gap: 8px; margin-top: 20px; }
+  .nav-btn {
+    flex: 1; padding: 10px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--surface); color: var(--text2);
+    font-family: var(--mono); font-size: 12px; cursor: pointer; transition: all .15s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .right { width: 340px; overflow-y: auto; padding: 20px; flex-shrink: 0; background: var(--surface); }
+  .right.hidden { display: none; }
+
+  .section-label {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: .1em; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-label.stage-lbl { color: var(--danger); }
+  .section-label.bank-lbl { color: var(--warn); margin-top: 18px; }
+
+  .icard { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+  .icard.bank-card { border-color: #2a3518; }
+  .icard-q {
+    padding: 11px 14px; cursor: pointer; display: flex;
+    align-items: center; justify-content: space-between;
+    background: var(--surface2); transition: background .1s;
+  }
+  .icard.bank-card .icard-q { background: #15200a; }
+  .icard-q:hover { background: #1f2f47; }
+  .icard.bank-card .icard-q:hover { background: #1c2c0e; }
+  .icard-q .lbl { font-size: 13px; flex: 1; line-height: 1.4; }
+  .icard-q .lbl.red { color: var(--danger); }
+  .icard-q .lbl.orange { color: var(--warn); }
+  .icard-q .lbl::before { content: '"'; }
+  .icard-q .lbl::after { content: '"'; }
+  .arr { font-size: 10px; color: var(--text3); margin-left: 8px; transition: transform .15s; flex-shrink: 0; }
+  .arr.open { transform: rotate(90deg); color: var(--accent2); }
+  .icard-a {
+    display: none; padding: 12px 14px; font-size: 13px;
+    color: var(--text); line-height: 1.6;
+    border-top: 1px solid var(--border); background: var(--bg);
+  }
+  .icard-a.open { display: block; }
+  .icard-a::before { content: '→ '; color: var(--success); font-weight: 600; }
+
+  /* bank full mode */
+  .bank-header { margin-bottom: 16px; }
+  .bank-header h2 {
+    font-family: var(--mono); font-size: 11px; color: var(--warn);
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bank-header h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .bank-header p { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+  .bank-search {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px;
+    font-family: var(--sans); margin-bottom: 12px;
+    outline: none; transition: border-color .15s;
+  }
+  .bank-search:focus { border-color: var(--warn); }
+  .bank-search::placeholder { color: var(--text3); }
+  .cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cat-tab {
+    font-family: var(--mono); font-size: 10px; padding: 3px 9px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: none; color: var(--text3); cursor: pointer; transition: all .15s;
+  }
+  .cat-tab:hover { border-color: var(--warn); color: var(--warn); }
+  .cat-tab.active { background: var(--warn); border-color: var(--warn); color: #0a0e1a; font-weight: 600; }
+  .bank-empty { font-family: var(--mono); font-size: 12px; color: var(--text3); padding: 20px 0; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (max-width: 700px) {
+    .right { display: none; }
+    .stage-pills { display: none; }
+    .layout { flex-direction: column; }
+    .left { border-right: none; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">OmniReply <span>// satış scripti</span></div>
+  <div class="stage-pills" id="pills"></div>
+</div>
+<div class="layout">
+  <div class="left" id="left"></div>
+  <div class="right" id="right"></div>
+</div>
+<script>
+const bankData = [
+  {id:"f1",cat:"Fiyat",q:"Çok pahalı.",a:"Pahalı olup olmadığını anlamanın tek yolu şu: bir müşteriniz ortalama size ne kadar kazandırıyor? O rakamı bilince zaten hesap netleşiyor."},
+  {id:"f2",cat:"Fiyat",q:"Bütçem / bütçemiz yok.",a:"Anlıyorum. Ama şunu da sorayım: şu an kaçan müşteriler size bütçe kaybettiriyor mu? Sistem almamak da aslında bir maliyet."},
+  {id:"f3",cat:"Fiyat",q:"Şu an pahalı geldi.",a:"Normal. Ama pahalı olan genelde sistem değil, kaçan müşteriler oluyor. Kaç mesaj cevapsız kalıyor bir günde?"},
+  {id:"f4",cat:"Fiyat",q:"Daha ucuz sistemler var.",a:"Muhtemelen vardır. Ama genelde ucuz sistemler sadece araç — sonuç getirmiyor. Sizin için önemli olan fiyat mı yoksa sonuç mu?"},
+  {id:"f5",cat:"Fiyat",q:"Bu paraya değmez.",a:"Değip değmediğini görmek için şunu hesaplayalım: bir müşteri size ortalama ne bırakıyor, ayda kaç mesaj kaçıyor?"},
+  {id:"f6",cat:"Fiyat",q:"Bu yatırım geri dönmez.",a:"Çoğu işletme zaten ilk ay içinde geri dönüş alıyor. Demo sonrası sizinle birlikte somut hesabı yapabiliriz."},
+  {id:"f7",cat:"Fiyat",q:"Aylık ödeme istemiyorum.",a:"Anlıyorum. Ama aylık sistem genelde ilk ay kazandığı müşterilerden kendini çıkarıyor. Rakamı görünce daha net değerlendirirsiniz."},
+  {id:"f8",cat:"Fiyat",q:"İndirim yaparsanız olur.",a:"Fiyatı konuşmadan önce değeri netleştirmek daha doğru. Sistemi görmeden indirim konuşmak her iki taraf için de doğru karar çıkarmıyor."},
+  {id:"f9",cat:"Fiyat",q:"Bu bizim bütçemizi aşar.",a:"Peki müşteri kazanma sizin için şu an ne kadar öncelikli? Çünkü bütçe genelde önceliğe göre şekilleniyor."},
+  {id:"f10",cat:"Fiyat",q:"Sabit gider istemiyoruz.",a:"Anlıyorum. Ama sabit gelir getiren bir sistem, sabit gideri çok farklı konuma koyuyor."},
+  {id:"f11",cat:"Fiyat",q:"Başka yere yatırım yapıyoruz.",a:"Bu aslında yatırım değil, müşteri kazanma sistemi. Reklama harcadığınız para gibi — ama daha ölçülebilir."},
+  {id:"z1",cat:"Zaman",q:"Şu an zamanımız yok.",a:"Tam da bu yüzden birçok işletme kullanıyor. Zamanınız yoksa sistem sizin yerinize mesajları karşılıyor."},
+  {id:"z2",cat:"Zaman",q:"Şu an yoğunuz.",a:"Yoğun dönemde otomasyon en çok fayda sağlayan şey oluyor. 'Zamanım yok' demek, tam da sistemin en güçlü olduğu yer."},
+  {id:"z3",cat:"Zaman",q:"Sonra konuşalım.",a:"Tabii. Ama hangi zaman sizin için daha mantıklı olur? Şimdi bir gün belirleyelim, o gün doğru gelelim."},
+  {id:"z4",cat:"Zaman",q:"Bu hafta olmaz.",a:"Sorun değil. Gelecek hafta 15-20 dakika ayırabilir misiniz?"},
+  {id:"z5",cat:"Zaman",q:"Sezon bitince bakarız.",a:"Sezon başlamadan sistemi kurmak çok daha iyi. Yoğunluğun içinde kurmak zaten zor oluyor."},
+  {id:"z6",cat:"Zaman",q:"Ay sonu konuşalım.",a:"Not aldım. Ama merak ettim: ay sonuna kadar kaç mesaj kaçabilir?"},
+  {id:"z7",cat:"Zaman",q:"Mail atın.",a:"Gönderebilirim. Ama mailde özellikle hangi bilgiyi görmek istersiniz? Ona göre hazırlayayım."},
+  {id:"z8",cat:"Zaman",q:"Broşür / sunum gönderin.",a:"Gönderebilirim. Ama genelde canlı görünce çok daha net oluyor. 15 dakika uygun olsa demoya bakalım mı?"},
+  {id:"g1",cat:"Güven",q:"Size güvenebilir miyim?",a:"Çok normal bir soru. O yüzden hiçbir şeyi anlatmak yerine sistemi canlı çalıştırarak göstermek daha mantıklı."},
+  {id:"g2",cat:"Güven",q:"Referansınız var mı?",a:"Elbette gösterebilirim. Ama daha iyisi: sistemi canlı test etmek. Birinin söylediği şeyden çok kendi gördüğünüz şey daha ikna edici olur."},
+  {id:"g3",cat:"Güven",q:"Daha önce hiç duymadım.",a:"Normal, hızlı büyüyoruz. Bu yüzden sistemi görmeden karar vermek yerine demo yapalım — 20 dakikada her şey netleşir."},
+  {id:"g4",cat:"Güven",q:"Garanti var mı?",a:"Sistem ölçülebilir çalışıyor — hangi mesaja ne cevap gittiğini görüyorsunuz. Görünmez şeyi garanti etmek zor, ama görünen şeyi kendiniz değerlendiriyorsunuz."},
+  {id:"g5",cat:"Güven",q:"Çok iyi görünüyor, gerçek mi?",a:"Bu yüzden canlı demo yapıyoruz. Kendi şube senaryonuzla test ediyorsunuz, anlatılana değil gördüğünüze inanıyorsunuz."},
+  {id:"g6",cat:"Güven",q:"Dolandırıcılık olmasın.",a:"Çok doğru bir düşünce. O yüzden paneli canlı gösteriyoruz ve kurulum öncesinde hiçbir ödeme istemiyoruz."},
+  {id:"g7",cat:"Güven",q:"Sizi tanımıyoruz.",a:"Tanımak için zaten en iyi yol canlı görmek. Anlatmak kolay — demo yapınca gerçek ortaya çıkıyor."},
+  {id:"g8",cat:"Güven",q:"Firma yeni gibi.",a:"Doğru, ama teknoloji ve ekip hızlı büyür. Demo yaptıktan sonra bu soruya kendi cevabınızı verirsiniz."},
+  {id:"k1",cat:"Karar",q:"Ortağıma sormam lazım.",a:"Çok mantıklı. Ortağınız büyük ihtimalle şu üç şeyi soracak: maliyet, nasıl çalışıyor, ne kazandırıyor. İsterseniz bunu birlikte netleştirelim ki ona anlatmanız kolay olsun."},
+  {id:"k2",cat:"Karar",q:"Patron karar verir.",a:"Harika. O zaman en doğru şey patronun 5 dakikada anlayacağı şekilde göstermek. Onunla birlikte bir demo ayarlayabilir miyiz?"},
+  {id:"k3",cat:"Karar",q:"Ekiple konuşmam lazım.",a:"Tabii ki. Ekip için kısa bir demo yapalım — canlı görünce karar vermek çok daha kolay oluyor."},
+  {id:"k4",cat:"Karar",q:"CEO / yönetim karar verir.",a:"Peki yönetim genelde hangi metriğe bakar — maliyet mi, müşteri kazanımı mı? Ona göre sunum hazırlayayım."},
+  {id:"k5",cat:"Karar",q:"Tek başıma karar veremem.",a:"Anlıyorum. Karar verecek kişiyle birlikte 20 dakikalık bir demo yapabilir miyiz? İkisi birden görün, ikisi birden karar verin."},
+  {id:"k6",cat:"Karar",q:"Şu an karar veremem.",a:"Tabii. Karar verirken sizin için en önemli kriter ne olur? Onu şimdi netleştirsek karar süreci çok kısalır."},
+  {id:"i1",cat:"İhtiyaç",q:"Buna ihtiyacımız yok.",a:"Anlıyorum. Şunu merak ettim: WhatsApp'tan günlük ortalama kaç mesaj geliyor? Hepsine aynı gün dönebiliyor musunuz?"},
+  {id:"i2",cat:"İhtiyaç",q:"Müşteri zaten geliyor.",a:"Bu harika. O zaten sistem size iki şey kazandırır: daha hızlı cevap ve daha iyi müşteri deneyimi — yani gelenler daha çok kalır."},
+  {id:"i3",cat:"İhtiyaç",q:"Sistemimiz zaten var.",a:"Harika. Mevcut sistem en çok hangi süreci yönetiyor? Çünkü çoğu sistem mesaj otomasyonunu kapsamıyor."},
+  {id:"i4",cat:"İhtiyaç",q:"Biz böyle iyiyiz.",a:"İyi olması güzel. Ama merak ettim: yoğun saatlerde gelen mesajlara da aynı hızda dönebiliyor musunuz?"},
+  {id:"i5",cat:"İhtiyaç",q:"Sorunumuz yok.",a:"Belki şu anda fark edilmeyen bir kayıp vardır. Müşteriler genelde cevapsız kalınca geri yazmıyor — başka yere gidiyorlar."},
+  {id:"i6",cat:"İhtiyaç",q:"Biz büyümek istemiyoruz.",a:"Anlıyorum. Ama sistem büyüme için değil, mevcut müşteri deneyimini de iyileştiriyor."},
+  {id:"i7",cat:"İhtiyaç",q:"Personel yeterli.",a:"Yeterli olması güzel. Ama otomasyon genelde ekibin yükünü azaltır — personel asıl müşteriye odaklanır, mesaj trafiğiyle değil."},
+  {id:"t1",cat:"Teknoloji",q:"Teknolojiden anlamam.",a:"Zaten anlamanıza gerek yok. WhatsApp kullanıyorsanız sistemi kullanabilirsiniz — arka taraf bizim işimiz."},
+  {id:"t2",cat:"Teknoloji",q:"Kurulumu zor mu?",a:"Kurulumun büyük kısmını biz yapıyoruz. Sizin tarafınızda genelde 1-2 saat içinde aktif oluyor."},
+  {id:"t3",cat:"Teknoloji",q:"Personel alışamaz.",a:"Çoğu işletmede aynı endişe vardı. Ama sistemi kurunca personel genelde en hızlı benimseyenler oluyor — iş kolaylaşıyor."},
+  {id:"t4",cat:"Teknoloji",q:"Ekstra iş çıkar.",a:"Tam tersine, amacı iş azaltmak. Gelen mesajların büyük kısmı siz hiç müdahale etmeden çözülüyor."},
+  {id:"t5",cat:"Teknoloji",q:"Karmaşık olur.",a:"Arka taraf karmaşık olabilir ama sizin gördüğünüz taraf sadece WhatsApp konuşmaları."},
+  {id:"t6",cat:"Teknoloji",q:"IT ekibimiz yok.",a:"Çoğu müşterimizin IT ekibi yok. Kurulumdan sonra teknik bakımı biz yapıyoruz."},
+  {id:"r1",cat:"Rakip",q:"Rakibim kullanmıyor.",a:"Bu aslında avantaj olabilir. Genelde ilk kullanan işletmeler müşteriyi daha hızlı topluyor."},
+  {id:"r2",cat:"Rakip",q:"Başka firmaya bakıyorum.",a:"Karşılaştırma yapmak en doğru karar. Onların en güçlü özelliği sizce ne? Oradan karşılaştıralım."},
+  {id:"r3",cat:"Rakip",q:"Benzer sistem var.",a:"Olabilir. O zaman farkı göstereyim — özellikle mesaj otomasyon kalitesi ve Türkiye pazarına özel yanıtlar."},
+  {id:"r4",cat:"Rakip",q:"Başka teklif aldım.",a:"Harika. Teklifi karşılaştırırken şuna bakın: gerçekten mesaj yönetimi çözüyor mu, yoksa sadece araç mı veriyor?"},
+  {id:"c1",cat:"Kapanış",q:"Düşünelim.",a:"Tabii ki. Genelde insanlar iki şey için düşünür: fiyat ya da gerçekten işe yarayıp yaramayacağı. Hangisi sizin için daha önemli?"},
+  {id:"c2",cat:"Kapanış",q:"Şimdilik istemiyoruz.",a:"Anlıyorum. Ama kısa bir demo görmek ister misiniz? 20 dakika — beğenmezseniz zaten istemezsiniz."},
+  {id:"c3",cat:"Kapanış",q:"Belki sonra.",a:"Tabii. O zamana kadar kaç müşteri kaçabilir? Çünkü mesaj kaybı her gün devam ediyor."},
+  {id:"c4",cat:"Kapanış",q:"Emin değilim.",a:"Emin olmak için sistemi görmek en kısa yol. Demo sonrası kendiniz değerlendirirsiniz."},
+  {id:"c5",cat:"Kapanış",q:"Kararsızım.",a:"Kararsızlık genelde üç şeyden biri: fiyat, güven ya da zaman. Sizin için en büyük soru işareti hangisi?"},
+];
+
+const bankById = Object.fromEntries(bankData.map(b=>[b.id,b]));
+const cats = ["Tümü",...new Set(bankData.map(b=>b.cat))];
+
+const stages = [
+  {
+    label:"Açılış",
+    lines:[
+      {s:"Merhaba, ben Deniz — OmniReply'dan arıyorum. [İsim] Bey/Hanım ile görüşüyor muyum?"},
+      {s:"Çok güzel. Yanlış zamanda aramadıysam 2 dakikanızı alabilir miyim?",c:"(tamam)"},
+      {s:"Güzellik salonlarında geç cevaplanan mesajlar yüzünden kaçan müşterileri geri kazandıran bir sistem kuruyoruz. Sizin salonunuzda da bu sorun oluyor mu?",c:"Evet → Pain aşamasına geç / Hayır → 'Yoğun saatlerde veya gece gelen mesajlar da dahil mi?'"},
+    ],
+    itirazlar:[
+      {q:"Şu an müsait değilim",a:"Anlıyorum, zaten 2 dakika alacak. Sadece bir şey sormak istiyorum: gelen mesajların hepsine gerçekten yetişebiliyor musunuz?"},
+      {q:"Ne hakkında arıyorsunuz?",a:"Güzellik salonlarında geç cevap yüzünden kaçan müşterileri geri kazandıran bir sistem kuruyoruz. Sizin salonunuzda da bu sorun oluyor mu?"},
+      {q:"İlgilenmiyorum",a:"Anlıyorum. Ama merak ettim, sadece bir soru: şu an işletmenizde en zor olan şey, müşteri kazanmak mı yoksa gelen mesajlara yetişmek mi?"},
+      {q:"Bizi aramayın / Tekrar aramayın",a:"Tabii ki saygı duyarım. Ama merak ettim, son bir şey sorayım: mesajlara yetişememek şu an sizin için gerçekten sorun değil mi?"},
+    ],
+    bankKeys:["z1","z2","z3","z7","z8","g1","g3","g6","g7","g8","i1","i4","i5","r2","r3"]
+  },
+  {
+    label:"Problem",
+    lines:[
+      {s:"Günde ortalama kaç WhatsApp mesajı geliyor size — randevu soranlar, fiyat soranlar, 'müsait misiniz' diyenler?",c:"(cevabı dinle)"},
+      {s:"Peki bunların hepsine aynı gün dönebiliyor musunuz, yoksa bazıları kaçıyor mu?",c:"(cevabı dinle)"},
+      {s:"Yoğun saatlerde veya gece gelen mesajlar da dahil mi?",c:"(cevabı dinle)"},
+      {s:"Mesajlara genelde siz mi bakıyorsunuz, yoksa personel mi ilgileniyor?",c:"(cevabı dinle)"},
+    ],
+    itirazlar:[
+      {q:"Biz zaten cevap veriyoruz",a:"Çoğu işletme aynı şeyi söylüyor. Ama özellikle yoğun saatlerde veya gece gelen mesajlar — müşterilerin en çok kaçtığı an orası. Sizde hiç böyle bir durum yaşanmıyor mu?"},
+      {q:"Ekibimiz hızlı",a:"Bu aslında çok iyi bir şey. Ama genelde sorun hız değil, yoğunluk oluyor. Aynı anda birkaç mesaj geldiğinde biri kaçabiliyor."},
+      {q:"Personelimiz zaten ilgileniyor",a:"Çok iyi. Ama genelde amaç personelin zamanını mesaj cevaplamaktan müşteriye ayırmasını sağlamak. Mesajlar otomatik çözülünce personel asıl işine odaklanıyor."},
+      {q:"Çok az mesaj geliyor",a:"Bu durumda bile bir şey merak ettim: gelen mesajların hepsine ne kadar hızlı cevap verebiliyorsunuz?"},
+      {q:"Biz telefon ile çalışıyoruz",a:"Telefon hala güçlü. Ama yeni müşteriler genelde önce mesaj atmayı tercih ediyor — arayanlar zaten geliyor, asıl mesaj atanlar kaçıyor."},
+    ],
+    bankKeys:["i1","i2","i3","i4","i5","i6","i7","z1","z2","t1","t3","t4"]
+  },
+  {
+    label:"Pain",
+    lines:[
+      {s:"Bir müşteri ortalama kaç TL bırakıyor sizde?",c:"(cevabı al)"},
+      {s:"Şöyle düşünelim — günde sadece 2-3 mesaj kaçırılıyor olsa, ayda [rakam x 60] TL ciro kaybı olabilir. Bu sizde de yaşanıyor olabilir mi?",c:"(cevabı dinle)"},
+    ],
+    itirazlar:[
+      {q:"Bizde o kadar olmuyor",a:"Anlıyorum. Ama çoğu işletme bunu fark etmiyor çünkü müşteriler genelde geri yazmıyor — başka yere gidiyorlar."},
+      {q:"Müşterilerimiz sadık",a:"Bu çok iyi. Ama sadık müşteriler bile hızlı cevap alamadığında başka yere yazabiliyor, özellikle ilk randevuda."},
+      {q:"Müşterilerimiz genelde arıyor",a:"Arayanlar zaten geliyor — asıl mesaj atanlar kaçıyor. Yeni müşteriler önce mesaj atmayı tercih ediyor."},
+      {q:"Bu kadar kayıp yok",a:"Belki. Ama bir müşteri ortalama size ne bırakıyorsa, ayda kaç mesaj cevapsız kalıyor, bunu hiç hesapladınız mı?"},
+    ],
+    bankKeys:["f2","f5","f9","i2","i3","i4","i5","z2","z6"]
+  },
+  {
+    label:"Vizyon",
+    lines:[
+      {s:"Müşteri gece 11'de 'yarın müsait misiniz?' diye yazıyor. Sistem 10 saniye içinde cevap veriyor, randevuya yönlendiriyor. Siz sabah uyandığınızda takvim dolu. Siz hiç ekrana bakmadan. Bu mantıklı geliyor mu?",c:"(cevabı dinle)"},
+    ],
+    itirazlar:[
+      {q:"AI sistemleri güvenilir değil",a:"Zaten sistem tamamen otomatik değil — siz hangi mesajlara nasıl cevap verileceğini belirliyorsunuz. Sistem sizin kurallarınızla çalışıyor."},
+      {q:"Müşteriler robot olduğunu anlar",a:"İlk cevap otomatik olsa bile konuşma doğal ilerliyor. Çoğu müşteri hızlı cevap aldığı için memnun oluyor — zaten beklenti bu."},
+      {q:"Müşteriler insanla konuşmak ister",a:"Bu yüzden sistem sadece ilk mesajları karşılıyor — sonrasında istediğinizde siz devralıyorsunuz."},
+      {q:"Bu bize göre değil",a:"Bu çok mümkün. Ama şunu söyleyeyim: en çok 'bize göre değil' diyen işletmeler sistemi gördükten sonra fikrini değiştiriyor. Demo 20 dakika — baksanıza."},
+    ],
+    bankKeys:["g1","g4","g5","i1","i3","i4","t1","t4","t5","r1","r3"]
+  },
+  {
+    label:"Solution",
+    lines:[
+      {s:"Bizim kurduğumuz sistem tam olarak bunu yapıyor. WhatsApp ve Instagram mesajlarını 7/24 otomatik karşılıyor. Randevu almak isterse randevu linki gidiyor, adres sorarsa konum gidiyor, fiyat sorarsa fiyat listesi. Mesajların büyük kısmı siz hiç müdahale etmeden çözülüyor."},
+      {s:"Kaç şubeniz var şu an?",c:"(cevabı al — fiyat için not et)"},
+    ],
+    itirazlar:[
+      {q:"Bizim CRM sistemimiz var",a:"Bu sistem CRM'in yerine geçmek için değil — mesajları otomatik yönetip müşteriyi CRM'e düşürmek için çalışıyor. İkisi birlikte çalışıyor."},
+      {q:"Biz WhatsApp Business kullanıyoruz",a:"Harika, zaten sistem WhatsApp Business üzerine kurulu. Mevcut hattınıza entegre oluyoruz, numara değişmiyor."},
+      {q:"Zaten randevu sistemimiz var",a:"Bu sistem randevu sisteminin yerine geçmiyor — müşterilerin o sisteme otomatik ulaşmasını sağlıyor. Randevu sisteminiz daha çok dolacak."},
+      {q:"Biz küçük bir işletmeyiz",a:"Sistem en çok küçük ve orta ölçekli işletmelerde işe yarıyor — mesaj yönetimi genelde 1-2 kişinin üzerine kalıyor. Tam da orayı çözüyor."},
+      {q:"Bizim sektörde çalışmaz",a:"Aynı şeyi söyleyen birçok sektördeki işletme sistemi gördükten sonra fikrini değiştirdi. Peki en çok hangi kısmının çalışmayacağını düşünüyorsunuz?"},
+      {q:"Başka yazılım kullanıyoruz",a:"Harika. O yazılım en çok hangi sorunu çözüyor? Çünkü çoğu yazılım mesaj otomasyonunu kapsamıyor."},
+    ],
+    bankKeys:["i3","i4","t1","t2","t3","t4","t5","t6","g1","g4","r2","r3","r4","f4"]
+  },
+  {
+    label:"Risk",
+    lines:[
+      {s:"Kurulum genelde 1-2 gün içinde aktif oluyor. İsterseniz önce küçük bir demo yapıyoruz — bir hafta takip ediyoruz, her şey yolundaysa aktifleştiriyoruz. Bir sorun çıkarsa direkt bana WhatsApp'tan yazıyorsunuz.",c:"(cevabı dinle)"},
+    ],
+    itirazlar:[
+      {q:"Teknolojiyle uğraşmak istemiyoruz",a:"Zaten sistemin amacı tam da bu — siz teknolojiyle uğraşmayın. Kurulumdan sonra otomatik çalışıyor, siz sadece dolu takvimi görüyorsunuz."},
+      {q:"Daha önce denedik, olmadı",a:"Eski sistemlerde otomasyon genelde çok sınırlı kalıyor. Bu yüzden çoğu işletme ikinci kez denediğinde çok daha iyi sonuç alıyor — o yüzden zaten demo yapıyoruz."},
+      {q:"Şu an çok yoğunuz",a:"Tam da bu yüzden çoğu işletme sistemi kuruyor. Yoğunluk arttıkça mesaj yönetimi zorlaşıyor — sistem o yükü üstünüzden alıyor."},
+      {q:"Kurulum zor olur",a:"Kurulumun büyük kısmını biz yapıyoruz. Sizin tarafınızda genelde 1-2 saat içinde aktif oluyor."},
+      {q:"Veri güvenliği önemli",a:"Kesinlikle önemli. Sistem WhatsApp'ın resmi API'si üzerinden çalışıyor, veriler üçüncü şahıslarla paylaşılmıyor."},
+      {q:"Çalışmazsa ne olacak?",a:"Bu yüzden önce demo yapıyoruz — 1 hafta takip ediyoruz. Bir şey olursa direkt bana yazıyorsunuz, aynı gün çözüyoruz."},
+    ],
+    bankKeys:["t1","t2","t3","t4","t5","t6","g1","g4","g5","g6","f2","f6","z1","z2"]
+  },
+  {
+    label:"Anchoring",
+    lines:[
+      {s:"Aslında asıl soru fiyat değil. Asıl soru şu: şu an kaç müşteri kaçıyor ve bu size aylık ne kadar mal oluyor? Bir müşteri [X] TL bırakıyorsa, ayda 5-6 müşteri bile sistemi zaten amorti ediyor.",c:"(cevabı dinle)"},
+    ],
+    itirazlar:[
+      {q:"Fiyat yüksek",a:"Fiyatın yüksek olup olmadığını anlamanın tek yolu şu: size kazandıracağı değerle karşılaştırmak. Bir müşteri size ortalama ne kadar bırakıyor?"},
+      {q:"Bütçemiz yok",a:"Anlıyorum. Ama şunu sorayım: şu anda kaçan müşteriler size bütçe kaybettiriyor mu? Çünkü sistem almamak da bir maliyet."},
+      {q:"Rakibiniz de bizi aradı",a:"Birçok işletme birkaç sistemi karşılaştırarak karar veriyor. Demo yaptıktan sonra farkı zaten görüyorsunuz — sonra karar verirsiniz."},
+      {q:"Daha ucuz alternatiflere bakacağım",a:"Çok doğru yaklaşım. Karşılaştırırken şunu bakın: sadece araç mı sunuyor, yoksa gerçekten mesaj yönetimi çözüyor mu?"},
+      {q:"İndirim yaparsanız olur",a:"Fiyatı konuşmadan önce sistemi görmek daha mantıklı — değeri netleştirmeden indirim konuşmak genelde doğru karar çıkarmıyor."},
+    ],
+    bankKeys:["f1","f2","f3","f4","f5","f6","f7","f8","f9","f10","f11","r2","r3","r4","k1","k2","k4","k6"]
+  },
+  {
+    label:"Kapanış",
+    lines:[
+      {s:"İsterseniz sizin şube için kurulumu yapalım. Kurulum ₺10.000, aylık kullanım ₺9.000/şube. Demo için bu hafta mı müsaitsiniz, yoksa önümüzdeki hafta mı daha uygun olur?"},
+    ],
+    itirazlar:[
+      {q:"Bir düşüneyim",a:"Tabii ki. Ama şunu sorayım — kafanızda en çok takılan şey ne? Onu şimdi cevaplayabilirsem demoya çok daha hazır gelirsiniz."},
+      {q:"Eşime / ortağıma / müdürüme danışmam lazım",a:"Tabii, danışmanız çok doğal. Peki danışacağınız kişinin aklında en çok ne olur — fiyat mı, teknik güvenilirlik mi? Hatta isterseniz onunla birlikte 20 dakikalık bir demo ayarlayalım."},
+      {q:"Şu an önceliğimiz değil",a:"Anlıyorum. Ama şunu sormam lazım — mesaj kaçırma problemi sizin için ne kadar önemli? Çünkü bu problem her geçen gün devam ediyor."},
+      {q:"Şimdilik hayır",a:"Anlıyorum. Son bir şey: eğer mesaj yönetimi ileride öncelik olursa, direkt beni arayın. O zaman demoya öncelik veririm."},
+      {q:"Kararsızım",a:"Kararsızlık genelde üç şeyden biri: fiyat, gerçekten işe yarayıp yaramayacağı, ya da zaman. Sizce hangisi?"},
+    ],
+    bankKeys:["c1","c2","c3","c4","c5","f1","f2","f3","f7","f8","f9","k1","k2","k3","k4","k5","k6","z3","g4"]
+  },
+];
+
+let cur=0, bankMode=false, bankCat="Tümü", bankSearch="";
+
+function renderPills() {
+  const p=document.getElementById('pills');
+  p.innerHTML='';
+  stages.forEach((s,i)=>{
+    const total=s.itirazlar.length+s.bankKeys.length;
+    const b=document.createElement('button');
+    b.className='pill'+((!bankMode&&i===cur)?' active':'');
+    b.innerHTML=s.label+`<span class="cnt">${total}</span>`;
+    b.onclick=()=>{bankMode=false;cur=i;render();};
+    p.appendChild(b);
+  });
+  const bk=document.createElement('button');
+  bk.className='pill bank-pill'+(bankMode?' active':'');
+  bk.innerHTML=`İtiraz Bankası <span class="cnt">${bankData.length}</span>`;
+  bk.onclick=()=>{bankMode=true;render();};
+  p.appendChild(bk);
+}
+
+function renderLeft() {
+  const left=document.getElementById('left');
+  const right=document.getElementById('right');
+  if(bankMode){
+    left.classList.add('full');
+    right.classList.add('hidden');
+    renderBankFull(left);
+    return;
+  }
+  left.classList.remove('full');
+  right.classList.remove('hidden');
+  const s=stages[cur];
+  let h=`<div class="stage-name">${s.label}</div>`;
+  s.lines.forEach(l=>{
+    h+=`<div class="speech-block"><div class="speech"><p>${l.s}</p>${l.c?`<div class="cue">${l.c}</div>`:''}</div></div>`;
+  });
+  h+=`<div class="nav-row">
+    ${cur>0?`<button class="nav-btn" onclick="go(-1)">← Önceki</button>`:''}
+    ${cur<stages.length-1?`<button class="nav-btn" onclick="go(1)">Sonraki →</button>`:''}
+  </div>`;
+  left.innerHTML=h;
+}
+
+function renderRight() {
+  if(bankMode) return;
+  const s=stages[cur];
+  const right=document.getElementById('right');
+  // Stage itirazları
+  let h=`<div class="section-label stage-lbl">Bu Aşamada</div>`;
+  s.itirazlar.forEach((it,i)=>{
+    h+=`<div class="icard">
+      <div class="icard-q" onclick="tog('s${i}')">
+        <span class="lbl red">${it.q}</span>
+        <span class="arr" id="arr-s${i}">▶</span>
+      </div>
+      <div class="icard-a" id="ans-s${i}">${it.a}</div>
+    </div>`;
+  });
+  // Bankadan gelebilecekler
+  const bItems=s.bankKeys.map(id=>bankById[id]).filter(Boolean);
+  if(bItems.length){
+    h+=`<div class="section-label bank-lbl">Bankadan Gelebilir</div>`;
+    bItems.forEach((b,i)=>{
+      h+=`<div class="icard bank-card">
+        <div class="icard-q" onclick="tog('bx${i}')">
+          <span class="lbl orange">${b.q}</span>
+          <span class="arr" id="arr-bx${i}">▶</span>
+        </div>
+        <div class="icard-a" id="ans-bx${i}">${b.a}</div>
+      </div>`;
+    });
+  }
+  right.innerHTML=h;
+}
+
+function renderBankFull(container) {
+  let filtered=bankData;
+  if(bankCat!=="Tümü") filtered=filtered.filter(b=>b.cat===bankCat);
+  if(bankSearch.trim()){
+    const q=bankSearch.trim().toLowerCase();
+    filtered=filtered.filter(b=>b.q.toLowerCase().includes(q)||b.a.toLowerCase().includes(q));
+  }
+  const safeSearch=bankSearch.replace(/"/g,'&quot;');
+  let h=`<div class="bank-header">
+    <h2>İtiraz Bankası</h2>
+    <p>${bankData.length} itiraz — aşamadan bağımsız, sahada anlık kullan</p>
+  </div>
+  <input class="bank-search" placeholder="İtiraz ara..." value="${safeSearch}" oninput="bankSearch=this.value;renderLeft()"/>
+  <div class="cat-tabs">`;
+  cats.forEach(c=>{
+    h+=`<button class="cat-tab${bankCat===c?' active':''}" onclick="bankCat='${c}';renderLeft()">${c}</button>`;
+  });
+  h+=`</div><div>`;
+  if(!filtered.length){
+    h+=`<div class="bank-empty">Sonuç bulunamadı.</div>`;
+  } else {
+    filtered.forEach((b,i)=>{
+      h+=`<div class="icard bank-card">
+        <div class="icard-q" onclick="tog('bk${i}')">
+          <span class="lbl orange">${b.q}</span>
+          <span class="arr" id="arr-bk${i}">▶</span>
+        </div>
+        <div class="icard-a" id="ans-bk${i}">${b.a}</div>
+      </div>`;
+    });
+  }
+  h+=`</div>`;
+  container.innerHTML=h;
+}
+
+function tog(id){
+  const a=document.getElementById('ans-'+id);
+  const r=document.getElementById('arr-'+id);
+  if(!a||!r) return;
+  a.classList.toggle('open');
+  r.classList.toggle('open');
+}
+
+function go(d){cur+=d;render();}
+function render(){renderPills();renderLeft();renderRight();}
+render();
+</script>
+</body>
+</html>

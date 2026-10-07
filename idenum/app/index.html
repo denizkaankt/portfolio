@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>IDENUM</title>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0E0D11" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Manrope:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #0E0D11; color: #EDEAEE; font-family: 'Manrope', sans-serif; overflow: hidden; height: 100vh; }
+  .brand { font-family: 'Fraunces', serif; }
+
+  #invite-gate { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 12px; }
+  #invite-gate p.title { font-family: 'Fraunces', serif; font-size: 28px; margin: 0 0 4px; }
+  #invite-gate p.sub { color: #8B8791; font-size: 13px; margin: 0 0 20px; text-align: center; }
+  input { width: 260px; padding: 14px; border-radius: 12px; border: 1px solid #2A2730; background: #17151B; color: #EDEAEE; font-family: 'Manrope', sans-serif; font-size: 14px; }
+  button.primary { width: 260px; margin-top: 10px; padding: 14px; border-radius: 12px; border: none; background: #7C9885; color: #0E0D11; font-weight: 600; font-size: 14px; cursor: pointer; }
+  #invite-error { color: #C9A66B; font-size: 12px; min-height: 16px; }
+
+  #app { display: none; height: 100vh; position: relative; overflow: hidden; }
+  #track { display: flex; height: 100%; width: 300%; transition: transform 0.35s cubic-bezier(.22,.61,.36,1); }
+  .screen { width: 33.333%; height: 100%; overflow-y: auto; padding: 28px 22px 90px; }
+
+  .dots { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; z-index: 5; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #3A3730; transition: background 0.2s; }
+  .dot.active { background: #EDEAEE; }
+
+  #screen-orb { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 0; }
+  .brandmark { position: absolute; top: 26px; left: 24px; font-size: 14px; color: #5A5762; }
+  #orb-wrap { position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
+  #orb-glow { position: absolute; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(124,152,133,0.35) 0%, rgba(124,152,133,0) 70%); animation: breathe 4s ease-in-out infinite; pointer-events: none; }
+  #orb-glow.listening { background: radial-gradient(circle, rgba(201,166,107,0.45) 0%, rgba(201,166,107,0) 70%); animation: breathe 1.2s ease-in-out infinite; }
+  @keyframes breathe { 0%,100%{opacity:0.35; transform:scale(1);} 50%{opacity:0.65; transform:scale(1.06);} }
+  #orb-ring { cursor: pointer; }
+  #orb-name { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Fraunces', serif; font-size: 22px; text-align: center; max-width: 110px; }
+  #orb-hint { margin-top: 26px; font-size: 13px; color: #8B8791; text-align: center; min-height: 18px; max-width: 260px; padding: 0 12px; }
+
+  h2.section { font-family: 'Fraunces', serif; font-size: 19px; margin: 0 0 18px; }
+  .loop-card { padding: 12px; border: 0.5px solid #2A2730; border-radius: 12px; margin-bottom: 10px; }
+  .loop-card.risk { border-color: #C9A66B; }
+  .loop-view { display: flex; align-items: center; gap: 12px; }
+  .loop-title { font-size: 14px; margin: 0; }
+  .loop-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #8B8791; margin: 2px 0 0; }
+  .loop-card.risk .loop-meta { color: #C9A66B; }
+  .loop-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-btn { background: transparent; border: 1px solid #2A2730; border-radius: 8px; width: 34px; height: 34px; color: #EDEAEA; cursor: pointer; font-size: 14px; flex-shrink: 0; }
+  .loop-edit-row { display: none; gap: 6px; margin-top: 10px; }
+  .loop-edit-row input[type="datetime-local"] { flex: 1; width: auto; padding: 8px; font-size: 12px; }
+  .loop-edit-row button { width: auto; margin: 0; padding: 8px 12px; font-size: 12px; }
+  button.secondary { width: 100%; margin-top: 8px; padding: 12px; border-radius: 10px; border: 1px solid #2A2730; background: transparent; color: #EDEAEE; font-size: 13px; cursor: pointer; }
+  .row2 { display: flex; gap: 8px; }
+  .row2 input { width: auto; flex: 1; }
+
+  label.field-label { font-size: 12px; color: #8B8791; display: block; margin: 18px 0 6px; }
+  #status-log { margin-top: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5A5762; white-space: pre-wrap; max-height: 140px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div id="invite-gate">
+  <p class="title brand">idenum</p>
+  <p class="sub">Zihnindeki açık kalan döngüleri sessizce kapatır.</p>
+  <input id="invite-code" placeholder="Davetiye kodu" />
+  <button class="primary" id="join-btn">Katıl</button>
+  <p id="invite-error"></p>
+</div>
+
+<div id="app">
+  <div id="track">
+
+    <div class="screen" id="screen-orb">
+      <p class="brandmark brand">idenum</p>
+      <div id="orb-wrap">
+        <div id="orb-glow"></div>
+        <svg id="orb-ring" width="150" height="150" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="62" fill="none" stroke="#7C9885" stroke-width="2" stroke-dasharray="352 36" stroke-linecap="round" transform="rotate(-90 75 75)"/>
+        </svg>
+        <p id="orb-name" class="brand"></p>
+      </div>
+      <p id="orb-hint">Dokun ve konuş</p>
+    </div>
+
+    <div class="screen" id="screen-track">
+      <h2 class="section">Takip ettiklerim</h2>
+      <div id="loop-list"></div>
+
+      <label class="field-label">Yeni toplantı ekle</label>
+      <input id="meeting-time" type="datetime-local" style="width:100%; margin-top:8px;" />
+      <div class="row2" style="margin-top:8px;">
+        <input id="dest-lat" type="number" step="any" placeholder="Hedef enlem" value="41.0431" />
+        <input id="dest-lng" type="number" step="any" placeholder="Hedef boylam" value="29.0083" />
+      </div>
+      <button class="secondary" id="geo-btn">Konumumu kullan</button>
+      <button class="secondary" id="meeting-btn">Toplantı ekle</button>
+    </div>
+
+    <div class="screen" id="screen-settings">
+      <h2 class="section">Ayarlar</h2>
+      <label class="field-label">IDENUM'a verdiğin isim</label>
+      <input id="name-input" placeholder="örn. Deniz" />
+      <button class="secondary" id="save-name-btn">Kaydet</button>
+
+      <label class="field-label">Bildirimler</label>
+      <button class="secondary" id="enable-btn">Bildirimlere izin ver</button>
+
+      <label class="field-label">Sesli geri bildirim</label>
+      <button class="secondary" id="tts-toggle-btn">Sesli yanıt: Açık</button>
+
+      <div id="status-log"></div>
+    </div>
+
+  </div>
+  <div class="dots">
+    <div class="dot" data-i="0"></div>
+    <div class="dot" data-i="1"></div>
+    <div class="dot" data-i="2"></div>
+  </div>
+</div>
+
+<script>
+const statusEl = document.getElementById('status-log');
+const log = (msg) => { statusEl.textContent += msg + '\n'; statusEl.scrollTop = statusEl.scrollHeight; console.log(msg); };
+
+let userId = null;
+let origin = null;
+let reg = null;
+let currentScreen = 0;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+const track = document.getElementById('track');
+function goToScreen(i) {
+  currentScreen = Math.max(0, Math.min(2, i));
+  track.style.transform = `translateX(-${currentScreen * 33.333}%)`;
+  document.querySelectorAll('.dot').forEach((d) => d.classList.toggle('active', Number(d.dataset.i) === currentScreen));
+}
+let touchStartX = null;
+document.getElementById('app').addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.getElementById('app').addEventListener('touchend', (e) => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (dx < -50) goToScreen(currentScreen + 1);
+  if (dx > 50) goToScreen(currentScreen - 1);
+  touchStartX = null;
+});
+let mouseStartX = null;
+document.getElementById('app').addEventListener('mousedown', (e) => { mouseStartX = e.clientX; });
+document.getElementById('app').addEventListener('mouseup', (e) => {
+  if (mouseStartX === null) return;
+  const dx = e.clientX - mouseStartX;
+  if (dx < -50) goToScreen(currentScreen + 1);
+  if (dx > 50) goToScreen(currentScreen - 1);
+  mouseStartX = null;
+});
+
+const orbGlow = document.getElementById('orb-glow');
+const orbHint = document.getElementById('orb-hint');
+let recognizing = false;
+
+function setOrbName() {
+  const name = localStorage.getItem('idenum_orb_name') || 'idenum';
+  document.getElementById('orb-name').textContent = name;
+}
+
+// ---- TTS (sesli geri bildirim) ----
+// Kullanıcı ayarlardan kapatabilir; varsayılan açık.
+function ttsEnabled() {
+  return localStorage.getItem('idenum_tts_enabled') !== 'off';
+}
+
+function speak(text) {
+  if (!ttsEnabled()) return;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel(); // önceki konuşmayı kes, üst üste binmesin
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'tr-TR';
+  utter.rate = 1.0;
+  window.speechSynthesis.speak(utter);
+  return utter;
+}
+
+// orb-hint'i belirli bir süre veya konuşma bitene kadar göster, sonra varsayılana dön
+function showHintThenReset(text, { spoken } = {}) {
+  orbHint.textContent = text;
+  if (spoken) {
+    const utter = speak(text);
+    if (utter) {
+      utter.onend = () => { orbHint.textContent = 'Dokun ve konuş'; };
+      utter.onerror = () => { orbHint.textContent = 'Dokun ve konuş'; };
+      return;
+    }
+  }
+  const delay = Math.min(4500, 1400 + text.length * 60);
+  setTimeout(() => { orbHint.textContent = 'Dokun ve konuş'; }, delay);
+}
+
+async function sendCapture(text) {
+  orbHint.textContent = 'İşleniyor...';
+  try {
+    const res = await fetch('/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, text }),
+    });
+    const result = await res.json();
+    log('Capture: ' + JSON.stringify(result));
+
+    if (result.status === 'needs_clarification' && result.question) {
+      // Backend eksik bilgi soruyor (örn. saat belirtilmemiş) — sesli olarak sor
+      showHintThenReset(result.question, { spoken: true });
+    } else if (result.status === 'rejected' && result.error) {
+      // Backend reddetti (örn. duplicate, closed loop) — sesli olarak açıkla
+      showHintThenReset(result.error, { spoken: true });
+    } else {
+      // Başarılı capture
+      showHintThenReset('Kaydedildi.', { spoken: true });
+      refreshLoops();
+    }
+  } catch (err) {
+    showHintThenReset('Bir sorun oldu.', { spoken: true });
+    log('HATA: ' + err.message);
+  }
+}
+
+function startListening() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    orbHint.textContent = 'Bu tarayıcı sesli girişi desteklemiyor.';
+    setTimeout(() => { orbHint.textContent = 'Dokun ve konuş'; }, 2500);
+    return;
+  }
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'tr-TR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognizing = true;
+  orbGlow.classList.add('listening');
+  orbHint.textContent = 'Dinliyorum...';
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    orbHint.textContent = '"' + text + '"';
+    sendCapture(text);
+  };
+  recognition.onerror = (event) => {
+    orbHint.textContent = 'Anlaşılamadı, tekrar dene.';
+    setTimeout(() => { orbHint.textContent = 'Dokun ve konuş'; }, 2000);
+  };
+  recognition.onend = () => {
+    recognizing = false;
+    orbGlow.classList.remove('listening');
+  };
+
+  recognition.start();
+}
+
+document.getElementById('orb-wrap').addEventListener('click', () => {
+  if (!recognizing) startListening();
+});
+
+function toLocalDatetimeInputValue(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+async function refreshLoops() {
+  try {
+    const res = await fetch('/loops?userId=' + userId);
+    const loops = await res.json();
+    const list = document.getElementById('loop-list');
+    list.innerHTML = '';
+    loops.forEach((loop) => {
+      const div = document.createElement('div');
+      const isRisky = loop.mentalLoadType === 'hesaplanmis';
+      div.className = 'loop-card' + (isRisky ? ' risk' : '');
+      const title = loop.mentalLoadType === 'hesaplanmis' ? 'Toplantı' : (loop.extractedData?.kisi ? loop.extractedData.kisi + "'i ara" : loop.rawInput);
+      const when = loop.targetTime ? new Date(loop.targetTime).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      const localVal = toLocalDatetimeInputValue(loop.targetTime);
+      div.innerHTML = `
+        <div class="loop-view">
+          <div style="flex:1"><p class="loop-title">${title}</p><p class="loop-meta">${when}</p></div>
+          <div class="loop-actions">
+            <button class="icon-btn edit-btn" title="Saati düzenle">✏️</button>
+            <button class="icon-btn delete-btn" data-id="${loop.id}" title="Sil">🗑</button>
+          </div>
+        </div>
+        <div class="loop-edit-row">
+          <input type="datetime-local" value="${localVal}" />
+          <button class="secondary save-time-btn" data-id="${loop.id}">Kaydet</button>
+          <button class="secondary cancel-edit-btn">Vazgeç</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  } catch (err) {
+    log('Loop listesi alinamadi: ' + err.message);
+  }
+}
+
+document.getElementById('loop-list').addEventListener('click', async (e) => {
+  const editBtn = e.target.closest('.edit-btn');
+  const cancelBtn = e.target.closest('.cancel-edit-btn');
+  const deleteBtn = e.target.closest('.delete-btn');
+  const saveBtn = e.target.closest('.save-time-btn');
+
+  if (editBtn) {
+    const card = editBtn.closest('.loop-card');
+    card.querySelector('.loop-view').style.display = 'none';
+    card.querySelector('.loop-edit-row').style.display = 'flex';
+    return;
+  }
+
+  if (cancelBtn) {
+    const card = cancelBtn.closest('.loop-card');
+    card.querySelector('.loop-view').style.display = 'flex';
+    card.querySelector('.loop-edit-row').style.display = 'none';
+    return;
+  }
+
+  if (deleteBtn) {
+    const id = deleteBtn.dataset.id;
+    if (!confirm('Bu döngüyü silmek istiyor musun?')) return;
+    try {
+      await fetch(`/loops/${id}/dismiss`, { method: 'PATCH' });
+      refreshLoops();
+    } catch (err) {
+      log('Silme hatasi: ' + err.message);
+    }
+    return;
+  }
+
+  if (saveBtn) {
+    const id = saveBtn.dataset.id;
+    const card = saveBtn.closest('.loop-card');
+    const input = card.querySelector('input[type="datetime-local"]');
+    if (!input.value) return;
+    try {
+      await fetch(`/loops/${id}/time`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetTime: new Date(input.value).toISOString() }),
+      });
+      refreshLoops();
+    } catch (err) {
+      log('Guncelleme hatasi: ' + err.message);
+    }
+    return;
+  }
+});
+
+document.getElementById('geo-btn').addEventListener('click', () => {
+  if (!('geolocation' in navigator)) { log('Konum servisi yok.'); return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { origin = { lat: pos.coords.latitude, lng: pos.coords.longitude }; log('Konum alindi.'); },
+    (err) => log('Konum alinamadi: ' + err.message)
+  );
+});
+document.getElementById('meeting-btn').addEventListener('click', async () => {
+  const meetingTimeRaw = document.getElementById('meeting-time').value;
+  const lat = parseFloat(document.getElementById('dest-lat').value);
+  const lng = parseFloat(document.getElementById('dest-lng').value);
+  if (!meetingTimeRaw || isNaN(lat) || isNaN(lng)) { log('Toplanti zamani ve hedef gerekli.'); return; }
+  try {
+    const res = await fetch('/capture/meeting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, meetingTime: new Date(meetingTimeRaw).toISOString(), destination: { lat, lng }, origin }),
+    });
+    const result = await res.json();
+    log('Toplanti: ' + JSON.stringify(result));
+    refreshLoops();
+  } catch (err) {
+    log('HATA: ' + err.message);
+  }
+});
+
+document.getElementById('save-name-btn').addEventListener('click', () => {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) return;
+  localStorage.setItem('idenum_orb_name', name);
+  setOrbName();
+  log('Isim kaydedildi: ' + name);
+});
+
+const ttsToggleBtn = document.getElementById('tts-toggle-btn');
+function refreshTtsToggleLabel() {
+  ttsToggleBtn.textContent = 'Sesli yanıt: ' + (ttsEnabled() ? 'Açık' : 'Kapalı');
+}
+ttsToggleBtn.addEventListener('click', () => {
+  const next = ttsEnabled() ? 'off' : 'on';
+  localStorage.setItem('idenum_tts_enabled', next);
+  refreshTtsToggleLabel();
+});
+
+document.getElementById('enable-btn').addEventListener('click', async () => {
+  if (!reg) { log('Service worker hazir degil.'); return; }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { log('Bildirim izni verilmedi.'); return; }
+    const vapidRes = await fetch('/push/vapid-public-key');
+    const { publicKey } = await vapidRes.json();
+    const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, subscription }) });
+    log('Bildirimlere abone olundu.');
+  } catch (err) {
+    log('HATA: ' + err.message);
+  }
+});
+
+async function startMainApp(id) {
+  userId = id;
+  document.getElementById('invite-gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  setOrbName();
+  refreshTtsToggleLabel();
+  goToScreen(0);
+  refreshLoops();
+
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    try { reg = await navigator.serviceWorker.register('/sw.js'); log('Service worker kayitli.'); }
+    catch (err) { log('Service worker kaydi basarisiz: ' + err.message); }
+  }
+}
+
+document.getElementById('join-btn').addEventListener('click', async () => {
+  const inviteCode = document.getElementById('invite-code').value.trim();
+  const errEl = document.getElementById('invite-error');
+  errEl.textContent = '';
+  if (!inviteCode) { errEl.textContent = 'Davetiye kodu gerekli.'; return; }
+  try {
+    const res = await fetch('/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ displayName: 'PWA', inviteCode }) });
+    if (!res.ok) { const b = await res.json(); errEl.textContent = b.error || ('HTTP ' + res.status); return; }
+    const data = await res.json();
+    localStorage.setItem('idenum_user_id', data.id);
+    await startMainApp(data.id);
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+});
+
+(async function init() {
+  const existingId = localStorage.getItem('idenum_user_id');
+  if (existingId) await startMainApp(existingId);
+})();
+</script>
+</body>
+</html>
